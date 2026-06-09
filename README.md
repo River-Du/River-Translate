@@ -52,11 +52,11 @@ python src/main.py
 | DeepL | Free API / Pro API | API Key（[申请](https://www.deepl.com/pro-api)） |
 | 自定义 AI 1 / 2 | OpenAI 兼容接口 | API Key、Base URL、模型名 |
 
-> 谷歌免费接口为公共接口，开箱即用，但稳定性受网络环境和服务状态影响，国内网络下可能不可用。如需更高稳定性，建议配置 Google Cloud、DeepL、百度或自定义 AI 接口。
+> 谷歌免费接口无需配置即可使用，但受网络环境影响，国内可能无法访问。
 >
-> 百度翻译 API 免费开放，国内用户可直接申请使用。
-
-自定义 AI 支持所有兼容 OpenAI Chat Completions 接口的服务，例如 DeepSeek、Ollama、vLLM 等。在设置中填入对应的 API Key、Base URL 和模型名即可使用。
+> 百度翻译 API 免费申请，国内用户可直接使用，稳定性好。
+>
+> 自定义 AI 支持所有兼容 OpenAI 接口的服务，例如 DeepSeek、MiMo 等，需先购买对应 API 服务并配置后使用。
 
 ## 使用
 
