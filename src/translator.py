@@ -100,10 +100,16 @@ class BaseTranslator(ABC):
         headers = headers or {}
 
         if method.upper() == "GET" and data is not None:
-            url = self._append_query(url, data)
-            data = None
-
-        body = self._encode_body(data)
+            query = urllib.parse.urlencode(data) if isinstance(data, dict) else str(data)
+            sep = "&" if "?" in url else "?"
+            url = url + sep + query
+            body = None
+        elif isinstance(data, dict):
+            body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        elif isinstance(data, bytes):
+            body = data
+        else:
+            body = None
 
         req = urllib.request.Request(url, data=body, headers=headers, method=method)
 
@@ -111,8 +117,8 @@ class BaseTranslator(ABC):
             with urllib.request.urlopen(req, timeout=getattr(self, "timeout", self.TIMEOUT)) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
-            body = e.read().decode("utf-8", errors="replace")
-            self._handle_http_error(e.code, body)
+            err_body = e.read().decode("utf-8", errors="replace")
+            self._handle_http_error(e.code, err_body)
         except urllib.error.URLError as e:
             reason = str(getattr(e, "reason", "")).lower()
             if "timed out" in reason or "timeout" in reason:
@@ -127,31 +133,6 @@ class BaseTranslator(ABC):
             if "timed out" in msg or "timeout" in msg:
                 raise NetworkError("请求超时")
             raise TranslationError(str(e))
-
-    @staticmethod
-    def _append_query(url, data):
-        if isinstance(data, dict):
-            query = urllib.parse.urlencode(data)
-        elif isinstance(data, str):
-            query = data
-        elif isinstance(data, bytes):
-            query = data.decode("utf-8")
-        else:
-            query = str(data)
-        sep = "&" if "?" in url else "?"
-        return url + sep + query
-
-    @staticmethod
-    def _encode_body(data):
-        if data is None:
-            return None
-        if isinstance(data, dict):
-            return json.dumps(data, ensure_ascii=False).encode("utf-8")
-        if isinstance(data, str):
-            return data.encode("utf-8")
-        if isinstance(data, bytes):
-            return data
-        return str(data).encode("utf-8")
 
     def _handle_http_error(self, code, body):
         if code in (401, 403):

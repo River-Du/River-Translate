@@ -317,8 +317,10 @@ class TranslatorApp:
         text = self.input_text.get("1.0", "end-1c")
         n = len(text)
         limit = self._get_max_chars()
-        self.char_label.configure(text=f"{n}/{limit}")
-        self.char_label.configure(foreground="red" if n >= limit * CHAR_WARN_RATIO else "gray")
+        self.char_label.configure(
+            text=f"{n}/{limit}",
+            foreground="red" if n >= limit * CHAR_WARN_RATIO else "gray",
+        )
 
     def _cancel_auto_translate(self):
         if self._auto_translate_job is not None:
