@@ -58,7 +58,7 @@ if sys.platform == "win32":
 class TranslatorApp:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("River翻译  V1.0")
+        self.root.title("River翻译  V1.1")
         self.root.minsize(620, 560)
         self.root.geometry("620x640")
 
