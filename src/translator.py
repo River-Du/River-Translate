@@ -83,7 +83,7 @@ class ParseError(TranslationError):
 #  基础翻译器
 # ============================================================
 class BaseTranslator(ABC):
-    TIMEOUT = 15
+    TIMEOUT = 30
 
     @property
     @abstractmethod
@@ -106,7 +106,7 @@ class BaseTranslator(ABC):
         req = urllib.request.Request(url, data=body, headers=headers, method=method)
 
         try:
-            with urllib.request.urlopen(req, timeout=self.TIMEOUT) as resp:
+            with urllib.request.urlopen(req, timeout=getattr(self, "timeout", self.TIMEOUT)) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", errors="replace")
@@ -422,4 +422,10 @@ def create_translator(engine_name, config):
     cls = ENGINES.get(engine_name)
     if cls is None:
         raise TranslationError(f"不支持的翻译引擎: {engine_name}")
-    return cls(engine_config)
+    translator = cls(engine_config)
+    timeout = config.get("request_timeout_seconds", translator.TIMEOUT)
+    if type(timeout) is int and timeout > 0:
+        translator.timeout = timeout
+    else:
+        translator.timeout = translator.TIMEOUT
+    return translator

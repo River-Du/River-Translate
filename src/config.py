@@ -10,6 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ---- 默认配置 ----
 DEFAULT_MAX_CHARS = 5000
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 30
 DEFAULT_CLIPBOARD_POLL_MS = 500
 MIN_CLIPBOARD_POLL_MS = 100
 MAX_CLIPBOARD_POLL_MS = 5000
@@ -52,6 +53,7 @@ DEFAULT_CONFIG = {
     "auto_translate": False,
     "auto_copy": False,
     "clipboard_translate": False,
+    "request_timeout_seconds": DEFAULT_REQUEST_TIMEOUT_SECONDS,
     "clipboard_poll_ms": DEFAULT_CLIPBOARD_POLL_MS,
     "history_max_items": DEFAULT_HISTORY_MAX_ITEMS,
     "engines": {
@@ -135,6 +137,9 @@ class ConfigManager:
 
     @staticmethod
     def _normalize_top_level_fields(config):
+        timeout = config.get("request_timeout_seconds")
+        if type(timeout) is not int or timeout <= 0:
+            config["request_timeout_seconds"] = DEFAULT_REQUEST_TIMEOUT_SECONDS
         for field, (default, min_value, max_value) in RANGED_INT_FIELDS.items():
             config[field] = _coerce_ranged_int(config.get(field), default, min_value, max_value)
         for field in BOOL_FIELDS:

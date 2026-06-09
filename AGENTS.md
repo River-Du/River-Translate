@@ -30,7 +30,7 @@ Entry point: `python src/main.py` (or `run.bat` which `cd`s into `src/` then use
 - `OpenAITranslator` handles AI1; `AI2Translator` inherits from it (`name = "ai2"`). Domain field is injected into system prompt if non-empty.
 - Google free endpoint is `translate.googleapis.com/translate_a/single` (GET, no auth). Cloud endpoint is `language/translate/v2` (POST, API key in header).
 - DeepL and Google use `current_api` config field (not `api_type`) to select interface variant.
-- `BaseTranslator._request()` handles GET (params → URL query) and POST (data → body). Timeout is 15s.
+- `BaseTranslator._request()` handles GET (params → URL query) and POST (data → body). Timeout comes from top-level `request_timeout_seconds` (default: 30s).
 
 ## Settings dialog (`SettingsDialog`)
 
@@ -43,7 +43,7 @@ Entry point: `python src/main.py` (or `run.bat` which `cd`s into `src/` then use
 
 - Bottom bar packed first with `side=tk.BOTTOM` to prevent being pushed off-screen when window shrinks.
 - Input/output `tk.Text` widgets fill remaining space (`fill=BOTH, expand=True`).
-- Translate button is `tk.Button` (not ttk) for reliable color control (`bg="#0078D4"`).
+- Translate button is `tk.Button` (not ttk) for reliable color control (`bg="#0078D4"`). It stays enabled during translation and switches to terminate mode.
 - Auto-translate debounce: `root.after(1000)` cancelled on each keystroke. History restore cancels pending auto-translate to avoid overwriting.
 - Clipboard translation polls clipboard text using the configured `clipboard_poll_ms` interval and translates new text immediately.
 
@@ -55,9 +55,9 @@ Entry point: `python src/main.py` (or `run.bat` which `cd`s into `src/` then use
 - When adding a new engine: update `ENGINES` dict, `ENGINE_NAMES`, `DEFAULT_CONFIG`, `SettingsDialog.TABS/TAB_LABELS`, `_make_tab_frame`, `_collect_values`, and `_sync_ai_names` if it has a `name` field.
 - The `json` import was removed from main.py — do not re-add unless needed.
 - `DEFAULT_CONFIG` in `config.py` is the single source of truth for all config keys and their defaults. `_merge_defaults` walks it strictly — any key not in `DEFAULT_CONFIG` is dropped on load.
-- Translation uses a `_translation_id` counter and current text checks to discard stale results when input changes mid-request. Clipboard translation queues a follow-up request when a translation is active.
+- Translation uses a `_translation_id` counter and current text checks to discard stale results when input changes mid-request or the user terminates translation. Clipboard translation queues a follow-up request when a translation is active.
 - `_sanitize_config()` runs on startup and after settings save to clamp `current_engine`, `source_lang`, and `target_lang` to valid values.
 - `_skip_next_auto_translate` flag prevents Enter-triggered translate from firing a second time via the auto-translate debounce. History restore also sets this flag.
 - `_pending_translate_after_current` queues a follow-up translate when input changes during an active translation (clipboard or auto mode). `_finish_translation` drains this queue.
-- Engine config is deep-copied before passing to worker threads (`copy.deepcopy`) to avoid races with the settings dialog.
+- Request config, including current engine config and `request_timeout_seconds`, is copied before passing to worker threads to avoid races with the settings dialog.
 - `_unique_engine_name` deduplicates AI display names against built-in engine names, appending a numeric suffix if needed.

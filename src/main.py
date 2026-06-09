@@ -22,6 +22,7 @@ from config import (
     DEFAULT_CLIPBOARD_POLL_MS,
     DEFAULT_HISTORY_MAX_ITEMS,
     DEFAULT_MAX_CHARS,
+    DEFAULT_REQUEST_TIMEOUT_SECONDS,
 )
 from translator import (
     LANGUAGES,
@@ -119,7 +120,7 @@ class TranslatorApp:
         bottom.pack(side=tk.BOTTOM, fill=tk.X)
 
         self.translate_btn = tk.Button(bottom, text="翻译", width=9,
-                                       command=self._do_translate,
+                                       command=self._on_translate_button,
                                        bg="#0078D4", fg="white", font=FONT_BTN,
                                        activebackground="#106EBE", activeforeground="white",
                                        relief=tk.FLAT, padx=8, pady=6)
@@ -252,6 +253,9 @@ class TranslatorApp:
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _on_global_clear(self, event=None):
+        if self._translating:
+            self._terminate_translation()
+            return "break"
         self._do_clear()
         return "break"
 
@@ -332,6 +336,13 @@ class TranslatorApp:
         if self._translating:
             self._set_translating(False)
 
+    def _terminate_translation(self):
+        if not self._translating:
+            return
+        self._cancel_auto_translate()
+        self._cancel_active_translation()
+        self._replace_output("已终止翻译")
+
     def _on_auto_translate_toggle(self):
         self._save_config()
         self._pending_translate_after_current = False
@@ -409,6 +420,12 @@ class TranslatorApp:
 
     # ========== 核心翻译流程 ==========
 
+    def _on_translate_button(self):
+        if self._translating:
+            self._terminate_translation()
+        else:
+            self._do_translate()
+
     def _do_translate(self):
         if self._translating:
             text = self.input_text.get("1.0", "end-1c").strip()
@@ -433,8 +450,12 @@ class TranslatorApp:
         src_code = self._display_to_code(self.src_var.get())
         tgt_code = self._display_to_code(self.tgt_var.get())
 
-        # 深拷贝当前引擎配置，避免子线程与设置弹窗竞态
+        # 深拷贝当前请求配置，避免子线程与设置弹窗竞态
         engine_cfg = copy.deepcopy(self.config.get("engines", {}).get(engine, {}))
+        request_config = {
+            "request_timeout_seconds": self.config.get("request_timeout_seconds", DEFAULT_REQUEST_TIMEOUT_SECONDS),
+            "engines": {engine: engine_cfg},
+        }
         self._translation_id += 1
         request_id = self._translation_id
         self._active_text = text
@@ -443,13 +464,13 @@ class TranslatorApp:
         self._set_output_message("翻译中...")
 
         t = threading.Thread(target=self._translate_worker,
-                             args=(engine, engine_cfg, text, src_code, tgt_code, request_id),
+                             args=(engine, request_config, text, src_code, tgt_code, request_id),
                              daemon=True)
         t.start()
 
-    def _translate_worker(self, engine, engine_cfg, text, src_code, tgt_code, request_id):
+    def _translate_worker(self, engine, request_config, text, src_code, tgt_code, request_id):
         try:
-            translator = create_translator(engine, {"engines": {engine: engine_cfg}})
+            translator = create_translator(engine, request_config)
             result = translator.translate(text, src_code, tgt_code)
 
             self._schedule_on_main(self._on_translate_ok, result, engine, src_code, tgt_code, text, request_id)
@@ -532,7 +553,12 @@ class TranslatorApp:
     def _set_translating(self, translating):
         self._translating = translating
         combo_state = tk.DISABLED if translating else "readonly"
-        self.translate_btn.configure(state=tk.DISABLED if translating else tk.NORMAL)
+        if translating:
+            self.translate_btn.configure(
+                text="终止翻译", state=tk.NORMAL, bg="#D83B01", activebackground="#A4262C"
+            )
+        else:
+            self.translate_btn.configure(text="翻译", state=tk.NORMAL, bg="#0078D4", activebackground="#106EBE")
         self.engine_combo.configure(state=combo_state)
         self.src_combo.configure(state=combo_state)
         self.tgt_combo.configure(state=combo_state)
