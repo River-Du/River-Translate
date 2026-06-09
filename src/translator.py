@@ -12,6 +12,8 @@ import urllib.parse
 import urllib.error
 from abc import ABC, abstractmethod
 
+from config import DEFAULT_REQUEST_TIMEOUT_SECONDS
+
 # ============================================================
 #  统一语言代码 & 显示名称
 # ============================================================
@@ -83,7 +85,7 @@ class ParseError(TranslationError):
 #  基础翻译器
 # ============================================================
 class BaseTranslator(ABC):
-    TIMEOUT = 30
+    TIMEOUT = DEFAULT_REQUEST_TIMEOUT_SECONDS
 
     @property
     @abstractmethod

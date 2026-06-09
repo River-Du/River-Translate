@@ -341,7 +341,7 @@ class TranslatorApp:
             return
         self._cancel_auto_translate()
         self._cancel_active_translation()
-        self._replace_output("已终止翻译")
+        self._set_output_message("已终止翻译")
 
     def _on_auto_translate_toggle(self):
         self._save_config()
@@ -453,7 +453,10 @@ class TranslatorApp:
         # 深拷贝当前请求配置，避免子线程与设置弹窗竞态
         engine_cfg = copy.deepcopy(self.config.get("engines", {}).get(engine, {}))
         request_config = {
-            "request_timeout_seconds": self.config.get("request_timeout_seconds", DEFAULT_REQUEST_TIMEOUT_SECONDS),
+            "request_timeout_seconds": self.config.get(
+                "request_timeout_seconds",
+                DEFAULT_REQUEST_TIMEOUT_SECONDS,
+            ),
             "engines": {engine: engine_cfg},
         }
         self._translation_id += 1
@@ -558,7 +561,9 @@ class TranslatorApp:
                 text="终止翻译", state=tk.NORMAL, bg="#D83B01", activebackground="#A4262C"
             )
         else:
-            self.translate_btn.configure(text="翻译", state=tk.NORMAL, bg="#0078D4", activebackground="#106EBE")
+            self.translate_btn.configure(
+                text="翻译", state=tk.NORMAL, bg="#0078D4", activebackground="#106EBE"
+            )
         self.engine_combo.configure(state=combo_state)
         self.src_combo.configure(state=combo_state)
         self.tgt_combo.configure(state=combo_state)
