@@ -41,6 +41,7 @@ FONT_BTN = ("Microsoft YaHei UI", 13, "bold")
 AI_ENGINE_CODES = ("ai1", "ai2")
 BUILTIN_ENGINE_CODES = ("google", "baidu", "deepl")
 DISPLAY_TO_LANGUAGE = {display: code for code, display in LANGUAGES.items()}
+CHAR_WARN_RATIO = 0.85
 
 # ---- Windows DPI 感知 ----
 if sys.platform == "win32":
@@ -296,9 +297,7 @@ class TranslatorApp:
         self._on_input_change()
 
     def _on_engine_select(self, event=None):
-        code = self._get_engine_code()
-        self.config["current_engine"] = code
-        self.config_mgr.save(self.config)
+        self._save_config()
         self._on_input_change()
 
     def _on_input_change(self, event=None):
@@ -319,7 +318,7 @@ class TranslatorApp:
         n = len(text)
         limit = self._get_max_chars()
         self.char_label.configure(text=f"{n}/{limit}")
-        self.char_label.configure(foreground="red" if n >= limit * 0.85 else "gray")
+        self.char_label.configure(foreground="red" if n >= limit * CHAR_WARN_RATIO else "gray")
 
     def _cancel_auto_translate(self):
         if self._auto_translate_job is not None:
@@ -329,7 +328,7 @@ class TranslatorApp:
                 pass
             self._auto_translate_job = None
 
-    def _cancel_active_translation(self):
+    def _cancel_translation_state(self):
         self._pending_translate_after_current = False
         self._translation_id += 1
         self._active_text = ""
@@ -340,7 +339,7 @@ class TranslatorApp:
         if not self._translating:
             return
         self._cancel_auto_translate()
-        self._cancel_active_translation()
+        self._cancel_translation_state()
         self._set_output_message("已终止翻译")
 
     def _on_auto_translate_toggle(self):
@@ -399,6 +398,7 @@ class TranslatorApp:
             return DEFAULT_MAX_CHARS
 
     def _save_config(self):
+        self.config["current_engine"] = self._get_engine_code()
         self.config["source_lang"] = self._display_to_code(self.src_var.get())
         self.config["target_lang"] = self._display_to_code(self.tgt_var.get())
         self.config["always_on_top"] = self.topmost_var.get()
@@ -415,8 +415,7 @@ class TranslatorApp:
 
     def _toggle_topmost(self):
         self.root.attributes("-topmost", self.topmost_var.get())
-        self.config["always_on_top"] = self.topmost_var.get()
-        self.config_mgr.save(self.config)
+        self._save_config()
 
     # ========== 核心翻译流程 ==========
 
@@ -632,7 +631,7 @@ class TranslatorApp:
 
     def _do_clear(self):
         self._cancel_auto_translate()
-        self._cancel_active_translation()
+        self._cancel_translation_state()
         self.input_text.delete("1.0", tk.END)
         self._replace_output("")
         self._update_char_count()
@@ -703,7 +702,7 @@ class TranslatorApp:
         if entry is None:
             return
         self._cancel_auto_translate()
-        self._cancel_active_translation()
+        self._cancel_translation_state()
         self._skip_next_auto_translate = True
 
         src_code = self._safe_lang_code(entry.get("source_lang"), default="auto")
@@ -1059,7 +1058,8 @@ class HistoryDialog:
         self.tree.column("time", width=140, minwidth=140, stretch=False, anchor="e")
 
         # 禁止拖动列分隔线
-        self.tree.bind("<Button-1>", self._on_tree_click)
+        self.tree.bind("<Button-1>", self._prevent_separator_resize, add="+")
+        self.tree.bind("<B1-Motion>", self._prevent_separator_resize, add="+")
 
         sb = ttk.Scrollbar(lf, orient=tk.VERTICAL, command=self.tree.yview)
         self.tree.configure(yscrollcommand=sb.set)
@@ -1082,7 +1082,7 @@ class HistoryDialog:
         ttk.Button(bf, text="回填", command=self._on_select).pack(side=tk.RIGHT, padx=2)
         ttk.Button(bf, text="关闭", command=self.dialog.destroy).pack(side=tk.RIGHT)
 
-    def _on_tree_click(self, event):
+    def _prevent_separator_resize(self, event):
         if self.tree.identify_region(event.x, event.y) == "separator":
             return "break"
 

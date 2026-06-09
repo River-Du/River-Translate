@@ -1,5 +1,11 @@
 # AGENTS.md
 
+## Run
+
+```bash
+python src/main.py
+```
+
 ## Architecture
 
 Three source files in `src/`, zero external dependencies (Python stdlib only):
