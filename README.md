@@ -47,16 +47,18 @@ python src/main.py
 
 | 引擎 | 接口类型 | 需要配置 |
 | --- | --- | --- |
-| 谷歌翻译 | 免费接口（默认）/ Cloud API | 免费接口不需要；Cloud 模式需要 API Key |
+| 谷歌翻译 | 免费接口（默认）/ Cloud API | 免费接口不需要；Cloud 模式需要 API Key（[申请](https://cloud.google.com/translate)） |
 | 百度翻译 | 通用翻译 API | AppID + SecretKey（[申请](https://fanyi-api.baidu.com/)） |
 | DeepL | Free API / Pro API | API Key（[申请](https://www.deepl.com/pro-api)） |
 | 自定义 AI 1 / 2 | OpenAI 兼容接口 | API Key、Base URL、模型名 |
 
-> 谷歌免费接口无需配置即可使用，但受网络环境影响，国内可能无法访问。
->
-> 百度翻译 API 免费申请，国内用户可直接使用，稳定性好。
->
-> 自定义 AI 支持所有兼容 OpenAI 接口的服务，例如 DeepSeek、MiMo 等，需先购买对应 API 服务并配置后使用。
+**谷歌翻译** — 免费接口无需配置即可使用，但受网络环境影响，国内可能无法访问。Cloud 模式为 Google 官方付费翻译 API，需申请 API Key，稳定性好。
+
+**百度翻译** — 免费申请，国内用户可直接使用，稳定性好。
+
+**DeepL** — 翻译质量高，但国内用户获取 API Key 较困难。
+
+**自定义 AI** — 支持所有兼容 OpenAI 接口的服务，例如 DeepSeek、MiMo 等，需先购买对应 API 服务并配置后使用。翻译质量由所选 AI 平台决定，可在设置中填写"领域/风格"来获取不同风格的翻译内容。
 
 ## 使用
 
