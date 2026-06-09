@@ -19,7 +19,7 @@
 
 ## 功能
 
-- 翻译引擎：谷歌、百度、DeepL、自定义AI
+- 翻译引擎：谷歌、百度、DeepL、自定义 AI
 - 谷歌免费接口开箱即用
 - 自动检测源语言
 - 翻译历史记录保存
@@ -43,44 +43,49 @@ run.bat
 python src/main.py
 ```
 
-## 使用
-
-配置翻译引擎和相关参数后，点击保存。
-选择源语言、目标语言、翻译引擎，输入文本后按 `Enter` 或点击翻译按钮。
-
-| 快捷键 | 功能 |
-| --- | --- |
-| `Enter` | 翻译 |
-| `Ctrl + Enter` / `Shift + Enter` | 换行 |
-| `Escape` | 翻译中终止翻译；空闲时清空输入和结果 |
-
-支持语言：自动检测源语言，目标语言覆盖中文、英语、日语、韩语、法语、德语、俄语、西班牙语。
-
 ## 翻译引擎
 
 | 引擎 | 接口类型 | 需要配置 |
 | --- | --- | --- |
 | 谷歌翻译 | 免费接口（默认）/ Cloud API | 免费接口不需要；Cloud 模式需要 API Key |
-| 百度翻译 | 通用翻译 API | AppID + SecretKey |
-| DeepL | Free API / Pro API | API Key |
+| 百度翻译 | 通用翻译 API | AppID + SecretKey（[申请](https://fanyi-api.baidu.com/)） |
+| DeepL | Free API / Pro API | API Key（[申请](https://www.deepl.com/pro-api)） |
 | 自定义 AI 1 / 2 | OpenAI 兼容接口 | API Key、Base URL、模型名 |
 
 > 谷歌免费接口为公共接口，开箱即用，但稳定性受网络环境和服务状态影响，国内网络下可能不可用。如需更高稳定性，建议配置 Google Cloud、DeepL、百度或自定义 AI 接口。
+>
+> 百度翻译 API 免费开放，国内用户可直接申请使用。
 
-## 项目结构
+自定义 AI 支持所有兼容 OpenAI Chat Completions 接口的服务，例如 DeepSeek、Ollama、vLLM 等。在设置中填入对应的 API Key、Base URL 和模型名即可使用。
 
-```
-River Translate/
-├── src/
-│   ├── main.py         # 主程序入口
-│   ├── translator.py   # 翻译引擎实现
-│   └── config.py       # 配置与历史记录管理
-├── assets/
-│   └── images/         # 截图等图片资源
-├── user_data/          # 用户配置与历史文件
-├── run.bat             # Windows 一键启动脚本
-└── README.md
-```
+## 使用
+
+启动后选择源语言、目标语言和翻译引擎，输入文本后按 `Enter` 或点击翻译按钮。
+
+| 快捷键 | 功能 |
+| --- | --- |
+| `Enter` | 翻译 |
+| `Ctrl + Enter` / `Shift + Enter` | 换行 |
+| `Escape` | 空闲时清空输入和输出 |
+| `Escape` | 翻译中终止翻译 |
+
+语言栏中间的 ⇄ 按钮可交换源语言和目标语言，同时交换输入框和输出框的内容。
+
+支持语言：自动检测源语言，目标语言覆盖中文、英语、日语、韩语、法语、德语、俄语、西班牙语。
+
+## 高级配置
+
+部分配置项未在设置界面中提供，可通过手动编辑 `user_data/config.json` 修改。**修改前请关闭应用**，保存后重新启动生效。
+
+| 配置项 | 默认值 | 范围 | 说明 |
+| --- | --- | --- | --- |
+| `request_timeout_seconds` | `30` | > 0 | 翻译请求超时时间（秒） |
+| `clipboard_poll_ms` | `500` | 100 ~ 5000 | 剪贴板检测间隔（毫秒），越小响应越快，但占用越高 |
+| `history_max_items` | `30` | 1 ~ 200 | 保存的历史记录条数上限 |
+
+此外，设置界面中每个引擎均有 **最大字数** 限制（默认 5000），输入超过限制时翻译会报错，输入框右上角的字数计数器会在接近上限时变红预警。
+
+> 如需恢复默认配置，删除 `config.json` 后重启应用即可自动生成。
 
 ## 隐私
 
