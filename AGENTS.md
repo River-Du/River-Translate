@@ -6,6 +6,8 @@
 python src/main.py
 ```
 
+Python 3.8+ required. No install step — run directly from repo root. `run.bat` uses `pythonw` (no console window).
+
 ## Architecture
 
 Three source files in `src/`, zero external dependencies (Python stdlib only):
@@ -17,8 +19,6 @@ src/
 └── main.py        — tkinter UI: TranslatorApp, SettingsDialog, HistoryDialog
 user_data/         — config.json and history.json (auto-generated at runtime, gitignored)
 ```
-
-Entry point: `python src/main.py` (or `run.bat` which `cd`s into `src/` then uses `pythonw`).
 
 `config.py` `BASE_DIR` points to project root (`src/`'s parent). User data lives in `user_data/` relative to that root. `save()` auto-creates the directory.
 
@@ -32,8 +32,8 @@ Entry point: `python src/main.py` (or `run.bat` which `cd`s into `src/` then use
 
 ## Engine layer (`translator.py`)
 
-- Each engine maps unified language codes (`zh`, `en`, etc.) to API-specific codes via `LANG_*` dicts. Add new languages in all 4 dicts.
-- `OpenAITranslator` handles AI1; `AI2Translator` inherits from it (`name = "ai2"`). Domain field is injected into system prompt if non-empty.
+- Each engine maps unified language codes (`zh`, `en`, etc.) to API-specific codes via `LANG_*` dicts. Add new languages in `config.py` `LANGUAGES` and the 3 API-specific translator dicts (`LANG_DEEPL`, `LANG_BAIDU`, `LANG_GOOGLE`); `VALID_LANGUAGE_CODES` is derived from `LANGUAGES`.
+- `OpenAITranslator` handles AI1; `AI2Translator` inherits from it and uses an independent AI2 config. Domain field is injected into system prompt if non-empty.
 - Google free endpoint is `translate.googleapis.com/translate_a/single` (GET, no auth). Cloud endpoint is `language/translate/v2` (POST, API key in header).
 - DeepL and Google use `current_api` config field (not `api_type`) to select interface variant.
 - `BaseTranslator._request()` handles GET (params → URL query) and POST (data → body). Timeout comes from top-level `request_timeout_seconds` (default: 30s).
@@ -59,11 +59,9 @@ Entry point: `python src/main.py` (or `run.bat` which `cd`s into `src/` then use
 - `run.bat` uses `pythonw` (no console). If Python is not in PATH, user must adjust.
 - Baidu API requires MD5 signature: `hashlib.md5(appid + text + salt + secret_key)`.
 - When adding a new engine: update `ENGINES` dict, `ENGINE_NAMES`, `DEFAULT_CONFIG`, `SettingsDialog.TABS/TAB_LABELS`, `_make_tab_frame`, `_collect_values`, and `_sync_ai_names` if it has a `name` field.
-- The `json` import was removed from main.py — do not re-add unless needed.
 - `DEFAULT_CONFIG` in `config.py` is the single source of truth for all config keys and their defaults. `_merge_defaults` walks it strictly — any key not in `DEFAULT_CONFIG` is dropped on load.
-- Translation uses a `_translation_id` counter and current text checks to discard stale results when input changes mid-request or the user terminates translation. Clipboard translation queues a follow-up request when a translation is active.
-- `_sanitize_config()` runs on startup and after settings save to clamp `current_engine`, `source_lang`, and `target_lang` to valid values.
-- `_skip_next_auto_translate` flag prevents Enter-triggered translate from firing a second time via the auto-translate debounce. History restore also sets this flag.
-- `_pending_translate_after_current` queues a follow-up translate when input changes during an active translation (clipboard or auto mode). `_finish_translation` drains this queue.
+- Translation uses a `_translation_id` counter and current text checks to discard stale results when input changes mid-request or the user terminates translation.
 - Request config, including current engine config and `request_timeout_seconds`, is copied before passing to worker threads to avoid races with the settings dialog.
+- `ConfigManager.load()` normalizes `current_engine`, `source_lang`, and `target_lang` to valid values; history restore still uses local UI fallbacks for old records.
 - `_unique_engine_name` deduplicates AI display names against built-in engine names, appending a numeric suffix if needed.
+- The settings dialog uses `_make_row` for AI tabs (label+entry on same row) vs `_make_stacked_entry` for built-in engine tabs (label above entry). Match the pattern when adding fields.

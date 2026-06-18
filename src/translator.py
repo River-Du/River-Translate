@@ -12,23 +12,11 @@ import urllib.parse
 import urllib.error
 from abc import ABC, abstractmethod
 
-from config import DEFAULT_REQUEST_TIMEOUT_SECONDS
+from config import DEFAULT_REQUEST_TIMEOUT_SECONDS, LANGUAGES
 
 # ============================================================
-#  统一语言代码 & 显示名称
+#  API 语言代码映射
 # ============================================================
-LANGUAGES = {
-    "auto": "自动检测",
-    "zh": "中文",
-    "en": "英语",
-    "ja": "日语",
-    "ko": "韩语",
-    "fr": "法语",
-    "de": "德语",
-    "ru": "俄语",
-    "es": "西班牙语",
-}
-
 LANG_DEEPL = {
     "auto": None, "zh": "ZH", "en": "EN", "ja": "JA", "ko": "KO",
     "fr": "FR", "de": "DE", "ru": "RU", "es": "ES",
@@ -86,11 +74,6 @@ class ParseError(TranslationError):
 # ============================================================
 class BaseTranslator(ABC):
     TIMEOUT = DEFAULT_REQUEST_TIMEOUT_SECONDS
-
-    @property
-    @abstractmethod
-    def name(self):
-        pass
 
     @abstractmethod
     def translate(self, text, source_lang, target_lang):
@@ -159,8 +142,6 @@ class BaseTranslator(ABC):
 #  DeepL 翻译器（免费/付费接口各自独立 API Key）
 # ============================================================
 class DeepLTranslator(BaseTranslator):
-    name = "deepl"
-
     def __init__(self, config):
         self.current_api = config.get("current_api", "free")
         if self.current_api not in ("free", "pro"):
@@ -205,8 +186,6 @@ class DeepLTranslator(BaseTranslator):
 #  百度翻译器
 # ============================================================
 class BaiduTranslator(BaseTranslator):
-    name = "baidu"
-
     def __init__(self, config):
         self.app_id = str(config.get("app_id") or "")
         self.secret_key = str(config.get("secret_key") or "")
@@ -263,17 +242,17 @@ class BaiduTranslator(BaseTranslator):
 #  OpenAI 格式翻译器（兼容 OpenAI / Ollama / vLLM 等）
 # ============================================================
 class OpenAITranslator(BaseTranslator):
-    name = "ai1"
-
     def __init__(self, config):
         self.api_key = str(config.get("api_key") or "")
-        self.base_url = str(config.get("base_url") or "https://api.openai.com").rstrip("/")
-        self.model = str(config.get("model") or "gpt-3.5-turbo")
+        self.base_url = str(config.get("base_url") or "").strip().rstrip("/")
+        self.model = str(config.get("model") or "").strip()
         self.domain = str(config.get("domain") or "")
 
     def translate(self, text, source_lang, target_lang):
-        if not self.api_key:
-            raise AuthError("请先配置 API 密钥")
+        if not self.base_url:
+            raise AuthError("请先配置 Base URL")
+        if not self.model:
+            raise AuthError("请先配置 Model")
 
         url = self._chat_completions_url()
 
@@ -297,17 +276,19 @@ class OpenAITranslator(BaseTranslator):
             "temperature": 0.3,
         }
 
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
 
         result = self._request(url, body, headers)
 
         try:
-            return html.unescape(result["choices"][0]["message"]["content"].strip())
+            content = result["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError):
             raise ParseError("响应格式异常，请检查 Base URL 和 Model 是否正确")
+        if not isinstance(content, str):
+            raise ParseError("响应格式异常，请检查 Base URL 和 Model 是否正确")
+        return html.unescape(content.strip())
 
     def _chat_completions_url(self):
         if self.base_url.endswith("/chat/completions"):
@@ -321,15 +302,13 @@ class OpenAITranslator(BaseTranslator):
 #  AI 2（与 AI 1 结构相同，独立配置）
 # ============================================================
 class AI2Translator(OpenAITranslator):
-    name = "ai2"
+    """与 AI1 共用 OpenAI 兼容实现，但读取独立的 AI2 配置。"""
 
 
 # ============================================================
 #  谷歌翻译器（免费公共接口 / Cloud Translation API）
 # ============================================================
 class GoogleTranslator(BaseTranslator):
-    name = "google"
-
     def __init__(self, config):
         self.api_key = str(config.get("api_key") or "")
         self.current_api = config.get("current_api", "free")
