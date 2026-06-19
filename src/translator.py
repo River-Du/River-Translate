@@ -107,6 +107,8 @@ class BaseTranslator(ABC):
             if "timed out" in reason or "timeout" in reason:
                 raise NetworkError("请求超时")
             raise NetworkError("网络连接失败，请检查网络")
+        except UnicodeDecodeError:
+            raise ParseError("响应编码异常，无法解析")
         except json.JSONDecodeError:
             raise ParseError("响应格式异常，无法解析")
         except TranslationError:
@@ -178,6 +180,8 @@ class DeepLTranslator(BaseTranslator):
             translated = translations[0]["text"]
         except (KeyError, TypeError):
             raise ParseError("DeepL API 响应格式异常")
+        if not isinstance(translated, str):
+            raise ParseError("DeepL API 响应格式异常")
 
         return html.unescape(translated)
 
@@ -230,8 +234,17 @@ class BaiduTranslator(BaseTranslator):
         if not trans_list:
             raise ParseError("未获得翻译结果")
 
-        parts = [item.get("dst", "") for item in trans_list if isinstance(item, dict)]
-        translation = "\n".join(part for part in parts if part)
+        parts = []
+        for item in trans_list:
+            if not isinstance(item, dict):
+                raise ParseError("百度翻译响应格式异常")
+            part = item.get("dst", "")
+            if not part:
+                continue
+            if not isinstance(part, str):
+                raise ParseError("百度翻译响应格式异常")
+            parts.append(part)
+        translation = "\n".join(parts)
         if not translation:
             raise ParseError("百度翻译响应格式异常")
 
@@ -334,7 +347,21 @@ class GoogleTranslator(BaseTranslator):
             raise ParseError("未获得翻译结果")
 
         segments = result[0]
-        translation = "".join(item[0] for item in segments if item and item[0])
+        if not isinstance(segments, list):
+            raise ParseError("Google 免费接口响应格式异常")
+        translation_parts = []
+        for item in segments:
+            if not item:
+                continue
+            if not isinstance(item, (list, tuple)):
+                raise ParseError("Google 免费接口响应格式异常")
+            part = item[0]
+            if not part:
+                continue
+            if not isinstance(part, str):
+                raise ParseError("Google 免费接口响应格式异常")
+            translation_parts.append(part)
+        translation = "".join(translation_parts)
 
         if not translation:
             raise ParseError("翻译结果为空")
@@ -362,7 +389,10 @@ class GoogleTranslator(BaseTranslator):
             if not translations:
                 raise ParseError("未获得翻译结果")
             t = translations[0]
-            return html.unescape(t["translatedText"])
+            translated = t["translatedText"]
+            if not isinstance(translated, str):
+                raise ParseError("Google Cloud API 响应格式异常，请检查 API Key")
+            return html.unescape(translated)
         except (KeyError, IndexError, TypeError):
             raise ParseError("Google Cloud API 响应格式异常，请检查 API Key")
 

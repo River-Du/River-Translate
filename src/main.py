@@ -1209,7 +1209,8 @@ class SettingsDialog:
         for code in AI_ENGINE_CODES:
             name = self.config["engines"][code]["name"]
             if name in used:
-                self.settings_status.configure(text=f"名称“{name}”已被其他引擎使用", foreground="red")
+                entry = self.entries[(code, "name")]
+                self._show_input_error(entry, f"名称“{name}”已被其他引擎使用", code)
                 return False
             used[name] = code
         return True
@@ -1236,6 +1237,14 @@ class SettingsDialog:
         code = self.active_tab.get()
         if code == "general":
             return
+        timeout = self._read_config_int(
+            self.general_entries["request_timeout_seconds"],
+            "request_timeout_seconds",
+            "超时时间",
+        )
+        if timeout is None:
+            return
+        self.config["request_timeout_seconds"] = timeout
         if not self._collect_engine_values(code):
             return
         config_snapshot = copy.deepcopy(self.config)
