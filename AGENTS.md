@@ -32,7 +32,7 @@ user_data/         — config.json and history.json (auto-generated at runtime, 
 
 ## Engine layer (`translator.py`)
 
-- Unified language codes (`zh`, `en`, etc.) mapped to API-specific codes via `LANG_*` dicts. Add new languages in `config.py` `LANGUAGES` and all 3 `LANG_*` dicts; `VALID_LANGUAGE_CODES` is derived from `LANGUAGES`.
+- Unified language codes (`zh`, `en`, etc.) mapped to API-specific codes via `LANG_*` dicts. Add new languages in `config.py` `LANGUAGES` and every engine language map in `translator.py`; DeepL has separate source and target maps because target English must use a regional code. `VALID_LANGUAGE_CODES` is derived from `LANGUAGES`.
 - `OpenAITranslator` handles AI1; `AI2Translator` inherits from it. Domain field injected into system prompt if non-empty.
 - Google free: `translate.googleapis.com/translate_a/single` (GET, no auth). Cloud: `language/translate/v2` (POST, API key in header).
 - DeepL and Google use `current_api` field (not `api_type`) to select interface variant.

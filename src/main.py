@@ -537,7 +537,12 @@ class TranslatorApp:
 
     def _toggle_topmost(self):
         self.root.attributes("-topmost", self.topmost_var.get())
+        if self.help_window is not None and self.help_window.winfo_exists():
+            self._apply_child_topmost(self.help_window)
         self._save_config()
+
+    def _apply_child_topmost(self, window):
+        window.attributes("-topmost", self.topmost_var.get())
 
     # ========== 核心翻译流程 ==========
 
@@ -804,7 +809,14 @@ class TranslatorApp:
 
     def _open_settings(self):
         current_engine = self._get_engine_code()
-        SettingsDialog(self.root, self.config, self.config_mgr, self._on_settings_saved, current_engine)
+        SettingsDialog(
+            self.root,
+            self.config,
+            self.config_mgr,
+            self._on_settings_saved,
+            current_engine,
+            topmost=self.topmost_var.get(),
+        )
 
     def _open_help(self):
         if self.help_window is not None and self.help_window.winfo_exists():
@@ -817,6 +829,7 @@ class TranslatorApp:
         win.title("帮助")
         win.resizable(False, False)
         win.transient(self.root)
+        self._apply_child_topmost(win)
 
         main = ttk.Frame(win, padding=14)
         main.pack(fill=tk.BOTH, expand=True)
@@ -923,7 +936,13 @@ class TranslatorApp:
 
     def _open_history(self):
         history = self.history_mgr.get_all()
-        HistoryDialog(self.root, history, self.history_mgr, self._on_history_select)
+        HistoryDialog(
+            self.root,
+            history,
+            self.history_mgr,
+            self._on_history_select,
+            topmost=self.topmost_var.get(),
+        )
 
     def _on_history_select(self, entry):
         if entry is None:
@@ -980,7 +999,7 @@ class SettingsDialog:
     }
     API_MODES = {"google": ("free", "cloud"), "deepl": ("free", "pro")}
 
-    def __init__(self, parent, config, config_mgr, callback, initial_tab="google"):
+    def __init__(self, parent, config, config_mgr, callback, initial_tab="google", topmost=False):
         self.config = copy.deepcopy(config)
         self.config_mgr = config_mgr
         self.callback = callback
@@ -997,6 +1016,8 @@ class SettingsDialog:
         self.dialog.resizable(True, True)
         self.dialog.minsize(SETTINGS_WINDOW_WIDTH, SETTINGS_WINDOW_HEIGHT)
         self.dialog.transient(parent)
+        if topmost:
+            self.dialog.attributes("-topmost", True)
         self.dialog.grab_set()
         self.dialog.protocol("WM_DELETE_WINDOW", self._close)
 
@@ -1327,7 +1348,7 @@ class SettingsDialog:
 #  历史弹窗
 # ============================================================
 class HistoryDialog:
-    def __init__(self, parent, history, history_mgr, callback):
+    def __init__(self, parent, history, history_mgr, callback, topmost=False):
         self.history = history
         self.history_mgr = history_mgr
         self.callback = callback
@@ -1337,6 +1358,8 @@ class HistoryDialog:
         self.dialog.resizable(True, True)
         self.dialog.minsize(400, 280)
         self.dialog.transient(parent)
+        if topmost:
+            self.dialog.attributes("-topmost", True)
         self.dialog.grab_set()
 
         self._build_ui()
