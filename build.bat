@@ -3,14 +3,37 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 cd /d "%~dp0"
 
-set "APP_NAME=RiverTranslate"
+set "APP_NAME=River Translate"
+set "DEFAULT_MODE=onedir"
 set "PROJECT_DIR=%CD%"
 set "ICON_PATH=%PROJECT_DIR%\assets\app.ico"
 set "ENTRY_PATH=%PROJECT_DIR%\src\main.py"
 set "VENV_PY=%PROJECT_DIR%\.venv\Scripts\python.exe"
-set "DIST_DIR=%PROJECT_DIR%\dist\%APP_NAME%"
+set "DIST_ROOT=%PROJECT_DIR%\dist"
+set "RELEASE_DIR=%DIST_ROOT%\%APP_NAME%"
 set "BUILD_DIR=%PROJECT_DIR%\build"
 set "PY_CMD="
+set "BUILD_MODE=%~1"
+
+if "%BUILD_MODE%"=="" set "BUILD_MODE=%DEFAULT_MODE%"
+
+if /I "%BUILD_MODE%"=="onefile" (
+    set "BUILD_MODE=onefile"
+    set "PYINSTALLER_MODE=--onefile"
+    set "DIST_PATH=%RELEASE_DIR%"
+) else if /I "%BUILD_MODE%"=="onedir" (
+    set "BUILD_MODE=onedir"
+    set "PYINSTALLER_MODE=--onedir"
+    set "DIST_PATH=%DIST_ROOT%"
+) else (
+    echo [ERROR] Unknown build mode: %BUILD_MODE%
+    echo Usage: build.bat [onefile^|onedir]
+    echo Default mode: %DEFAULT_MODE%
+    exit /b 1
+)
+
+set "OUTPUT_EXE=%RELEASE_DIR%\%APP_NAME%.exe"
+set "OUTPUT_INTERNAL=%RELEASE_DIR%\_internal"
 
 if not exist "%ICON_PATH%" (
     echo [ERROR] Missing icon file: %ICON_PATH%
@@ -68,34 +91,41 @@ if errorlevel 1 (
     echo [INFO] PyInstaller already installed in .venv.
 )
 
-if not exist "%DIST_DIR%" mkdir "%DIST_DIR%"
-if exist "%DIST_DIR%\%APP_NAME%.exe" (
-    del /f /q "%DIST_DIR%\%APP_NAME%.exe"
-    if exist "%DIST_DIR%\%APP_NAME%.exe" (
-        echo [ERROR] Cannot replace %DIST_DIR%\%APP_NAME%.exe
-        echo Close the running app or any program using the exe, then run this script again.
-        exit /b 1
-    )
-)
-if exist "%BUILD_DIR%\%APP_NAME%" rmdir /s /q "%BUILD_DIR%\%APP_NAME%"
+echo [INFO] Cleaning previous build and release output...
+if exist "%BUILD_DIR%" rmdir /s /q "%BUILD_DIR%"
 
-echo [INFO] Building one-file executable...
+if exist "%DIST_ROOT%" rmdir /s /q "%DIST_ROOT%"
+
+echo [INFO] Building %BUILD_MODE% executable...
 "%VENV_PY%" -m PyInstaller ^
     --noconfirm ^
     --clean ^
     --windowed ^
-    --onefile ^
+    %PYINSTALLER_MODE% ^
     --name "%APP_NAME%" ^
     --icon "%ICON_PATH%" ^
     --add-data "%ICON_PATH%;assets" ^
-    --distpath "%DIST_DIR%" ^
+    --distpath "%DIST_PATH%" ^
     --workpath "%BUILD_DIR%" ^
     --specpath "%BUILD_DIR%" ^
     "%ENTRY_PATH%"
 if errorlevel 1 exit /b 1
 
+if not exist "%OUTPUT_EXE%" (
+    echo [ERROR] Build output was not found: %OUTPUT_EXE%
+    exit /b 1
+)
+
+if /I "%BUILD_MODE%"=="onedir" (
+    if not exist "%OUTPUT_INTERNAL%" (
+        echo [ERROR] onedir runtime folder was not found: %OUTPUT_INTERNAL%
+        exit /b 1
+    )
+)
+
 echo.
-echo [OK] Build finished: %DIST_DIR%\%APP_NAME%.exe
-echo First run will create: %DIST_DIR%\user_data\config.json and history.json
+echo [OK] Build finished: %OUTPUT_EXE%
+if /I "%BUILD_MODE%"=="onedir" echo Runtime files are in: %OUTPUT_INTERNAL%
+echo App data will be created on launch: %RELEASE_DIR%\user_data\config.json and history.json
 echo.
 pause

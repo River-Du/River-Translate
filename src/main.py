@@ -1,5 +1,5 @@
 """
-翻译APP - 主界面 (tkinter)
+River Translate - 主界面 (tkinter)
 零外部依赖，启动即用
 """
 
@@ -40,6 +40,10 @@ from translator import (
 )
 
 # ---- 字体配置 ----
+APP_DISPLAY_NAME = "River Translate"
+APP_VERSION = "V1.3"
+APP_USER_MODEL_ID = "River.Translate.App"
+
 FONT = ("Microsoft YaHei UI", 11)
 FONT_BOLD = ("Microsoft YaHei UI", 11, "bold")
 FONT_BTN = ("Microsoft YaHei UI", 13, "bold")
@@ -61,7 +65,7 @@ TARGET_LANGUAGE_DISPLAY["auto"] = "自动中英"
 SOURCE_DISPLAY_TO_LANGUAGE = {display: code for code, display in SOURCE_LANGUAGE_DISPLAY.items()}
 TARGET_DISPLAY_TO_LANGUAGE = {display: code for code, display in TARGET_LANGUAGE_DISPLAY.items()}
 HELP_TEXT = (
-    "欢迎使用 River 翻译\n\n"
+    f"欢迎使用 {APP_DISPLAY_NAME}\n\n"
     "轻量纯文本翻译工具，零依赖、启动即用。\n\n"
     "【快捷键】\n"
     "Enter：翻译\n"
@@ -98,7 +102,7 @@ HELP_TEXT = (
 # ---- Windows 应用标识与 DPI 感知 ----
 if sys.platform == "win32":
     try:
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("RiverTranslate.App")
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_USER_MODEL_ID)
     except Exception:
         pass
     try:
@@ -122,7 +126,7 @@ class TranslatorApp:
     def __init__(self):
         self.root = tk.Tk()
         self.root.withdraw()
-        self.root.title("River翻译  V1.3")
+        self.root.title(f"{APP_DISPLAY_NAME}  {APP_VERSION}")
         self.root.minsize(MAIN_WINDOW_MIN_WIDTH, MAIN_WINDOW_MIN_HEIGHT)
         self.root.geometry(f"{MAIN_WINDOW_WIDTH}x{MAIN_WINDOW_HEIGHT}")
         apply_window_icon(self.root)
