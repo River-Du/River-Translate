@@ -48,18 +48,10 @@ MAIN_WINDOW_WIDTH = 600
 MAIN_WINDOW_HEIGHT = 640
 MAIN_WINDOW_MIN_WIDTH = 536
 MAIN_WINDOW_MIN_HEIGHT = 440
-TEXT_PANE_MIN_HEIGHT = 90
-TEXT_PANE_SASH_WIDTH = 10
-HELP_WINDOW_WIDTH = 560
-HELP_WINDOW_HEIGHT = 430
 SETTINGS_WINDOW_WIDTH = MAIN_WINDOW_WIDTH
 SETTINGS_WINDOW_HEIGHT = 500
-SETTINGS_WINDOW_MIN_WIDTH = SETTINGS_WINDOW_WIDTH
-SETTINGS_WINDOW_MIN_HEIGHT = SETTINGS_WINDOW_HEIGHT
 HISTORY_WINDOW_WIDTH = MAIN_WINDOW_WIDTH
 HISTORY_WINDOW_HEIGHT = 440
-HISTORY_WINDOW_MIN_WIDTH = 400
-HISTORY_WINDOW_MIN_HEIGHT = 280
 
 AI_ENGINE_CODES = ("ai1", "ai2")
 BUILTIN_ENGINE_CODES = ("google", "baidu", "deepl")
@@ -68,14 +60,6 @@ TARGET_LANGUAGE_DISPLAY = dict(LANGUAGES)
 TARGET_LANGUAGE_DISPLAY["auto"] = "自动中英"
 SOURCE_DISPLAY_TO_LANGUAGE = {display: code for code, display in SOURCE_LANGUAGE_DISPLAY.items()}
 TARGET_DISPLAY_TO_LANGUAGE = {display: code for code, display in TARGET_LANGUAGE_DISPLAY.items()}
-CHAR_WARN_RATIO = 0.85
-GENERAL_SETTING_FIELDS = (
-    ("request_timeout_seconds", "超时时间"),
-    ("clipboard_poll_ms", "剪贴板周期"),
-    ("history_max_items", "历史上限"),
-)
-CONFIG_SAVE_FAILURE_MESSAGE = "配置保存失败，请检查 user_data 目录写入权限。"
-
 HELP_TEXT = (
     "欢迎使用 River 翻译\n\n"
     "轻量纯文本翻译工具，适合短句、段落和剪贴板快速翻译。\n\n"
@@ -267,7 +251,7 @@ class TranslatorApp:
             main,
             orient=tk.VERTICAL,
             borderwidth=0,
-            sashwidth=TEXT_PANE_SASH_WIDTH,
+            sashwidth=10,
             sashrelief=tk.GROOVE,
             showhandle=False,
         )
@@ -275,8 +259,8 @@ class TranslatorApp:
 
         input_area = ttk.Frame(text_pane)
         output_area = ttk.Frame(text_pane)
-        text_pane.add(input_area, stretch="always", minsize=TEXT_PANE_MIN_HEIGHT)
-        text_pane.add(output_area, stretch="always", minsize=TEXT_PANE_MIN_HEIGHT)
+        text_pane.add(input_area, stretch="always", minsize=90)
+        text_pane.add(output_area, stretch="always", minsize=90)
 
         # ---- 输入区域头（标签 + 字数） ----
         in_header = ttk.Frame(input_area)
@@ -407,7 +391,7 @@ class TranslatorApp:
         limit = self._get_max_chars()
         self.char_label.configure(
             text=f"{n}/{limit}",
-            foreground="red" if n >= limit * CHAR_WARN_RATIO else "gray",
+            foreground="red" if n >= limit * 0.85 else "gray",
         )
 
     def _cancel_auto_translate(self):
@@ -843,7 +827,7 @@ class TranslatorApp:
         button_row.pack(fill=tk.X, pady=(12, 0))
         ttk.Button(button_row, text="关闭", command=self._close_help).pack(side=tk.RIGHT)
         win.protocol("WM_DELETE_WINDOW", self._close_help)
-        self._center_child_window(win, HELP_WINDOW_WIDTH, HELP_WINDOW_HEIGHT)
+        self._center_child_window(win, 560, 430)
 
     def _close_help(self):
         if self.help_window is None:
@@ -964,6 +948,11 @@ class TranslatorApp:
 # ============================================================
 class SettingsDialog:
     TABS = ["general", "google", "baidu", "deepl", "ai1", "ai2"]
+    GENERAL_FIELDS = (
+        ("request_timeout_seconds", "超时时间"),
+        ("clipboard_poll_ms", "剪贴板周期"),
+        ("history_max_items", "历史上限"),
+    )
     TAB_LABELS = {
         "general": "通用",
         "deepl": "DeepL",
@@ -989,7 +978,7 @@ class SettingsDialog:
         self.dialog = tk.Toplevel(parent)
         self.dialog.title("设置")
         self.dialog.resizable(True, True)
-        self.dialog.minsize(SETTINGS_WINDOW_MIN_WIDTH, SETTINGS_WINDOW_MIN_HEIGHT)
+        self.dialog.minsize(SETTINGS_WINDOW_WIDTH, SETTINGS_WINDOW_HEIGHT)
         self.dialog.transient(parent)
         self.dialog.grab_set()
         self.dialog.protocol("WM_DELETE_WINDOW", self._close)
@@ -1105,7 +1094,7 @@ class SettingsDialog:
         return f
 
     def _make_general_tab(self, parent):
-        for field, label in GENERAL_SETTING_FIELDS:
+        for field, label in self.GENERAL_FIELDS:
             default = CONFIG_INT_FIELDS[field][0]
             self.general_entries[field] = self._make_row(
                 parent,
@@ -1186,7 +1175,7 @@ class SettingsDialog:
         return True
 
     def _collect_general_values(self):
-        for field, label in GENERAL_SETTING_FIELDS:
+        for field, label in self.GENERAL_FIELDS:
             value = self._read_config_int(self.general_entries[field], field, label)
             if value is None:
                 return False
@@ -1226,7 +1215,10 @@ class SettingsDialog:
         if not self._validate_engine_names():
             return
         if not self.config_mgr.save(self.config):
-            self.settings_status.configure(text=CONFIG_SAVE_FAILURE_MESSAGE, foreground="red")
+            self.settings_status.configure(
+                text="配置保存失败，请检查 user_data 目录写入权限。",
+                foreground="red",
+            )
             return
         self.callback(self.config)
         self._close()
@@ -1326,7 +1318,7 @@ class HistoryDialog:
         self.dialog = tk.Toplevel(parent)
         self.dialog.title("翻译历史")
         self.dialog.resizable(True, True)
-        self.dialog.minsize(HISTORY_WINDOW_MIN_WIDTH, HISTORY_WINDOW_MIN_HEIGHT)
+        self.dialog.minsize(400, 280)
         self.dialog.transient(parent)
         self.dialog.grab_set()
 
