@@ -448,16 +448,19 @@ class TranslatorApp:
         if self._closed:
             return
 
-        if self.clipboard_translate_var.get():
-            sequence = self._get_clipboard_sequence()
-            if sequence is not None:
-                if self._clipboard_last_sequence is None:
-                    self._clipboard_last_sequence = sequence
-                elif sequence != self._clipboard_last_sequence:
-                    self._clipboard_last_sequence = sequence
-                    text = self._get_clipboard_text()
-                    if text is not None:
-                        self._translate_clipboard_text(text)
+        try:
+            if self.clipboard_translate_var.get():
+                sequence = self._get_clipboard_sequence()
+                if sequence is not None:
+                    if self._clipboard_last_sequence is None:
+                        self._clipboard_last_sequence = sequence
+                    elif sequence != self._clipboard_last_sequence:
+                        self._clipboard_last_sequence = sequence
+                        text = self._get_clipboard_text()
+                        if text is not None:
+                            self._translate_clipboard_text(text)
+        except Exception:
+            pass
 
         self.root.after(self.clipboard_poll_ms, self._poll_clipboard)
 
@@ -947,9 +950,9 @@ class TranslatorApp:
 
         self._replace_output(entry.get("target_text", ""))
 
-        self._on_input_change()
         # 回填历史时取消自动翻译，避免覆盖历史记录
         self._cancel_auto_translate()
+        self._on_input_change()
         self._save_config()
 
     # ========== 运行 ==========
