@@ -32,26 +32,22 @@ user_data/         — config.json and history.json (auto-generated at runtime, 
 
 ## Engine layer (`translator.py`)
 
-- Each engine maps unified language codes (`zh`, `en`, etc.) to API-specific codes via `LANG_*` dicts. Add new languages in `config.py` `LANGUAGES` and the 3 API-specific translator dicts (`LANG_DEEPL`, `LANG_BAIDU`, `LANG_GOOGLE`); `VALID_LANGUAGE_CODES` is derived from `LANGUAGES`.
-- `OpenAITranslator` handles AI1; `AI2Translator` inherits from it and uses an independent AI2 config. Domain field is injected into system prompt if non-empty.
-- Google free endpoint is `translate.googleapis.com/translate_a/single` (GET, no auth). Cloud endpoint is `language/translate/v2` (POST, API key in header).
-- DeepL and Google use `current_api` config field (not `api_type`) to select interface variant.
-- `BaseTranslator._request()` handles GET (params → URL query) and POST (data → body). Timeout comes from top-level `request_timeout_seconds` (default: 30s).
+- Unified language codes (`zh`, `en`, etc.) mapped to API-specific codes via `LANG_*` dicts. Add new languages in `config.py` `LANGUAGES` and all 3 `LANG_*` dicts; `VALID_LANGUAGE_CODES` is derived from `LANGUAGES`.
+- `OpenAITranslator` handles AI1; `AI2Translator` inherits from it. Domain field injected into system prompt if non-empty.
+- Google free: `translate.googleapis.com/translate_a/single` (GET, no auth). Cloud: `language/translate/v2` (POST, API key in header).
+- DeepL and Google use `current_api` field (not `api_type`) to select interface variant.
 
 ## Settings dialog (`SettingsDialog`)
 
 - All tab frames created at init, shown/hidden via `pack_forget`. Widget references persist across tab switches.
-- `_collect_values()` reads ALL tabs unconditionally (not just active). This is intentional — prevents data loss on tab switch.
-- `_build_ui()` creates `settings_status` and bottom buttons before the initial `_switch_tab()` call, so `_switch_tab()` can update status/test button state directly.
-- Dialog height must accommodate the tallest tab (AI1/AI2 with name/key/url/model/domain/max_chars). Current: 500px.
+- `_collect_values()` reads ALL tabs unconditionally (not just active) — prevents data loss on tab switch.
+- Uses `_make_row` for AI tabs (label+entry same row) vs `_make_stacked_entry` for built-in engine tabs (label above entry). Match the pattern when adding fields.
 
 ## UI layout (`TranslatorApp._setup_ui`)
 
 - Bottom bar packed first with `side=tk.BOTTOM` to prevent being pushed off-screen when window shrinks.
-- Input/output `tk.Text` widgets fill remaining space (`fill=BOTH, expand=True`).
-- Translate button is `tk.Button` (not ttk) for reliable color control (`bg="#0078D4"`). It stays enabled during translation and switches to terminate mode.
+- Translate button is `tk.Button` (not ttk) for color control — stays enabled during translation, switches to terminate mode.
 - Auto-translate debounce: `root.after(1000)` cancelled on each keystroke. History restore cancels pending auto-translate to avoid overwriting.
-- Clipboard translation polls clipboard text using the configured `clipboard_poll_ms` interval and translates new text immediately.
 
 ## Gotchas
 
@@ -59,9 +55,9 @@ user_data/         — config.json and history.json (auto-generated at runtime, 
 - `run.bat` uses `pythonw` (no console). If Python is not in PATH, user must adjust.
 - Baidu API requires MD5 signature: `hashlib.md5(appid + text + salt + secret_key)`.
 - When adding a new engine: update `ENGINES` dict, `ENGINE_NAMES`, `DEFAULT_CONFIG`, `SettingsDialog.TABS/TAB_LABELS`, `_make_tab_frame`, `_collect_values`, and `_sync_ai_names` if it has a `name` field.
-- `DEFAULT_CONFIG` in `config.py` is the single source of truth for all config keys and their defaults. `_merge_defaults` walks it strictly — any key not in `DEFAULT_CONFIG` is dropped on load.
+- `DEFAULT_CONFIG` in `config.py` is the single source of truth for all config keys. `_merge_defaults` walks it strictly — any key not in `DEFAULT_CONFIG` is dropped on load. If you rename a config field, users must delete `config.json`.
 - Translation uses a `_translation_id` counter and current text checks to discard stale results when input changes mid-request or the user terminates translation.
-- Request config, including current engine config and `request_timeout_seconds`, is copied before passing to worker threads to avoid races with the settings dialog.
+- Request config, including current engine config and `request_timeout_seconds`, is deep-copied before passing to worker threads to avoid races with the settings dialog.
 - `ConfigManager.load()` normalizes `current_engine`, `source_lang`, and `target_lang` to valid values; history restore still uses local UI fallbacks for old records.
 - `_unique_engine_name` deduplicates AI display names against built-in engine names, appending a numeric suffix if needed.
-- The settings dialog uses `_make_row` for AI tabs (label+entry on same row) vs `_make_stacked_entry` for built-in engine tabs (label above entry). Match the pattern when adding fields.
+- `ENGINE_NAMES` is mutable at runtime — AI1/AI2 display names come from config's `name` field and are synced via `_sync_ai_names()`. The engine combo reads `ENGINE_NAMES.values()`.

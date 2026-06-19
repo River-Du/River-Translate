@@ -62,23 +62,37 @@ SOURCE_DISPLAY_TO_LANGUAGE = {display: code for code, display in SOURCE_LANGUAGE
 TARGET_DISPLAY_TO_LANGUAGE = {display: code for code, display in TARGET_LANGUAGE_DISPLAY.items()}
 HELP_TEXT = (
     "欢迎使用 River 翻译\n\n"
-    "轻量纯文本翻译工具，适合短句、段落和剪贴板快速翻译。\n\n"
-    "【翻译】\n"
+    "轻量纯文本翻译工具，零依赖、启动即用。\n\n"
+    "【快捷键】\n"
     "Enter：翻译\n"
     "Ctrl / Shift + Enter：换行\n"
-    "Escape：清空；翻译中终止\n\n"
+    "Escape：清空输入输出；翻译中按 Escape 终止\n\n"
     "【语言】\n"
-    "源语言可自动检测；目标“自动中英”按首个有效字符选择中文或英语。\n"
-    "⇄：交换语言和输入/输出；任一语言为自动时不可用。\n\n"
-    "【引擎】\n"
-    "谷歌免费接口可直接使用；百度、DeepL、自定义 AI 需先配置。\n\n"
+    "源语言可自动检测。\n"
+    "目标语言「自动中英」：根据输入首个字符自动选择中文或英语。\n"
+    "⇄ 按钮：交换源语言和目标语言（任一语言为自动时不可用）。\n\n"
+    "【翻译引擎】\n"
+    "谷歌翻译 — 免费接口无需配置，开箱即用。\n"
+    "百度翻译 — 国内可直接使用，需在设置中配置 AppID 和密钥。\n"
+    "DeepL — 翻译质量高，需在设置中配置 API Key。\n"
+    "自定义 AI — 支持 OpenAI 兼容接口（如 DeepSeek、MiMo 等），需配置 Base URL 和模型名。可在设置中填写「领域/风格」来调整翻译风格。\n\n"
     "【自动功能】\n"
-    "剪贴板翻译：新剪贴板文本自动翻译\n"
-    "自动翻译：停止输入约 1 秒后翻译\n"
-    "自动复制：完成后复制译文\n"
-    "窗口置顶：主窗口保持在前\n\n"
-    "【历史与设置】\n"
-    "历史可回填并自动去重；通用设置可调整超时时间、剪贴板周期和历史上限。"
+    "剪贴板翻译：检测到新剪贴板内容时自动翻译（仅 Windows）。\n"
+    "自动翻译：停止输入约 1 秒后自动翻译。\n"
+    "自动复制：翻译完成后自动复制译文到剪贴板。\n"
+    "窗口置顶：主窗口始终保持在其他窗口上方。\n\n"
+    "【字数限制】\n"
+    "每个引擎有独立的最大字数限制（默认 5000，可在设置中调整）。\n"
+    "输入接近上限时，字数计数器会变红预警。\n\n"
+    "【历史记录】\n"
+    "翻译历史自动保存并去重，支持回填到输入框。\n"
+    "历史上限、超时时间、剪贴板检测间隔等可在通用设置中调整。\n\n"
+    "【隐私提示】\n"
+    "翻译时输入文本会发送至所选翻译服务，请根据隐私需求选择引擎。\n"
+    "配置和历史保存在 user_data 目录，可能包含 API Key，请勿分享。\n\n"
+    "【常见问题】\n"
+    "谷歌免费接口不可用 → 受网络环境影响，国内可能无法访问，请切换其他引擎。\n"
+    "恢复默认设置 → 删除 user_data/config.json 后重启应用。"
 )
 
 # ---- Windows DPI 感知 ----
@@ -327,6 +341,7 @@ class TranslatorApp:
         return "break"
 
     def _on_input_enter(self, event):
+        self._cancel_auto_translate()
         self._skip_next_auto_translate = True
         self._do_translate()
         return "break"
@@ -373,9 +388,8 @@ class TranslatorApp:
         self._on_input_change()
 
     def _on_input_change(self, event=None):
-        self._update_char_count()
-
         text = self.input_text.get("1.0", "end-1c")
+        self._update_char_count(text)
 
         # 自动翻译：输入停止 1 秒后触发
         self._cancel_auto_translate()
@@ -385,8 +399,9 @@ class TranslatorApp:
         if self.auto_translate_var.get() and text.strip():
             self._auto_translate_job = self.root.after(1000, self._do_translate)
 
-    def _update_char_count(self):
-        text = self.input_text.get("1.0", "end-1c")
+    def _update_char_count(self, text=None):
+        if text is None:
+            text = self.input_text.get("1.0", "end-1c")
         n = len(text)
         limit = self._get_max_chars()
         self.char_label.configure(
@@ -827,7 +842,7 @@ class TranslatorApp:
         button_row.pack(fill=tk.X, pady=(12, 0))
         ttk.Button(button_row, text="关闭", command=self._close_help).pack(side=tk.RIGHT)
         win.protocol("WM_DELETE_WINDOW", self._close_help)
-        self._center_child_window(win, 560, 430)
+        self._center_child_window(win, 560, 520)
 
     def _close_help(self):
         if self.help_window is None:
