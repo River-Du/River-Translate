@@ -10,6 +10,7 @@ if _src_dir not in sys.path:
     sys.path.insert(0, _src_dir)
 
 import copy
+import ctypes
 import threading
 import unicodedata
 from datetime import datetime
@@ -120,6 +121,7 @@ class TranslatorApp:
         self.config = self.config_mgr.load()
         self.history_mgr = HistoryManager(max_items=self.config.get("history_max_items", DEFAULT_HISTORY_MAX_ITEMS))
         self.clipboard_poll_ms = self.config.get("clipboard_poll_ms", DEFAULT_CLIPBOARD_POLL_MS)
+        self._get_clipboard_sequence_number = self._init_clipboard_sequence_api()
 
         # 同步 AI 名称到引擎列表
         self._sync_ai_names()
@@ -128,7 +130,7 @@ class TranslatorApp:
         self._closed = False
         self._translating = False
         self._auto_translate_job = None
-        self._clipboard_last_text = None
+        self._clipboard_last_sequence = None
         self._pending_translate_after_current = False
         self._skip_next_auto_translate = False
         self._translation_id = 0
@@ -440,26 +442,52 @@ class TranslatorApp:
 
     def _on_clipboard_translate_toggle(self):
         self._save_config()
-        self._clipboard_last_text = self._get_clipboard_text()
+        if self.clipboard_translate_var.get():
+            self._reset_clipboard_baseline()
 
     def _poll_clipboard(self):
         if self._closed:
             return
 
-        text = self._get_clipboard_text()
-        if self._clipboard_last_text is None or not self.clipboard_translate_var.get():
-            self._clipboard_last_text = text
-        elif text != self._clipboard_last_text:
-            self._clipboard_last_text = text
-            self._translate_clipboard_text(text)
+        if self.clipboard_translate_var.get():
+            sequence = self._get_clipboard_sequence()
+            if sequence is not None:
+                if self._clipboard_last_sequence is None:
+                    self._clipboard_last_sequence = sequence
+                elif sequence != self._clipboard_last_sequence:
+                    self._clipboard_last_sequence = sequence
+                    text = self._get_clipboard_text()
+                    if text is not None:
+                        self._translate_clipboard_text(text)
 
         self.root.after(self.clipboard_poll_ms, self._poll_clipboard)
+
+    def _reset_clipboard_baseline(self):
+        self._clipboard_last_sequence = self._get_clipboard_sequence()
+
+    def _init_clipboard_sequence_api(self):
+        if sys.platform != "win32":
+            return None
+        try:
+            get_sequence = ctypes.windll.user32.GetClipboardSequenceNumber
+            get_sequence.restype = ctypes.c_uint
+            return get_sequence
+        except (AttributeError, OSError):
+            return None
+
+    def _get_clipboard_sequence(self):
+        if self._get_clipboard_sequence_number is None:
+            return None
+        try:
+            return int(self._get_clipboard_sequence_number())
+        except OSError:
+            return None
 
     def _get_clipboard_text(self):
         try:
             return self.root.clipboard_get()
         except tk.TclError:
-            return ""
+            return None
 
     def _translate_clipboard_text(self, text):
         if not text or not text.strip():
@@ -758,7 +786,8 @@ class TranslatorApp:
             self.root.clipboard_append(text)
         except tk.TclError:
             return False
-        self._clipboard_last_text = text
+        if self.clipboard_translate_var.get():
+            self._reset_clipboard_baseline()
         return True
 
     def _do_clear(self):
