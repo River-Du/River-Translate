@@ -20,7 +20,7 @@ src/
 user_data/         — config.json and history.json (auto-generated at runtime, gitignored)
 ```
 
-`config.py` `BASE_DIR` points to project root (`src/`'s parent). User data lives in `user_data/` relative to that root. `save()` auto-creates the directory.
+`config.py` `BASE_DIR` points to project root when run from source, and to the exe directory when frozen by PyInstaller. `RESOURCE_DIR` points to bundled resources in frozen mode. User data lives in `user_data/` relative to `BASE_DIR`. `save()` auto-creates the directory.
 
 ## Key conventions
 

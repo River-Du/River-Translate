@@ -18,6 +18,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from config import (
+    APP_ICON_PATH,
     CONFIG_INT_FIELDS,
     ConfigManager,
     HistoryManager,
@@ -94,14 +95,25 @@ HELP_TEXT = (
     "恢复默认设置 → 删除 user_data/config.json 后重启应用。"
 )
 
-# ---- Windows DPI 感知 ----
+# ---- Windows 应用标识与 DPI 感知 ----
 if sys.platform == "win32":
     try:
-        from ctypes import windll
-        windll.shcore.SetProcessDpiAwareness(1)
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("RiverTranslate.App")
+    except Exception:
+        pass
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
     except Exception:
         pass
 
+
+def apply_window_icon(window):
+    if not APP_ICON_PATH.exists():
+        return
+    try:
+        window.iconbitmap(str(APP_ICON_PATH))
+    except tk.TclError:
+        pass
 
 # ============================================================
 #  主窗口
@@ -109,6 +121,7 @@ if sys.platform == "win32":
 class TranslatorApp:
     def __init__(self):
         self.root = tk.Tk()
+        apply_window_icon(self.root)
         self.root.title("River翻译  V1.3")
         self.root.minsize(MAIN_WINDOW_MIN_WIDTH, MAIN_WINDOW_MIN_HEIGHT)
         self.root.geometry(f"{MAIN_WINDOW_WIDTH}x{MAIN_WINDOW_HEIGHT}")
@@ -825,6 +838,7 @@ class TranslatorApp:
             return
 
         win = tk.Toplevel(self.root)
+        apply_window_icon(win)
         self.help_window = win
         win.title("帮助")
         win.resizable(False, False)
@@ -1012,6 +1026,7 @@ class SettingsDialog:
         self._test_id = 0
 
         self.dialog = tk.Toplevel(parent)
+        apply_window_icon(self.dialog)
         self.dialog.title("设置")
         self.dialog.resizable(True, True)
         self.dialog.minsize(SETTINGS_WINDOW_WIDTH, SETTINGS_WINDOW_HEIGHT)
@@ -1354,6 +1369,7 @@ class HistoryDialog:
         self.callback = callback
 
         self.dialog = tk.Toplevel(parent)
+        apply_window_icon(self.dialog)
         self.dialog.title("翻译历史")
         self.dialog.resizable(True, True)
         self.dialog.minsize(400, 280)

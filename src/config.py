@@ -4,9 +4,17 @@
 
 import copy
 import json
+import sys
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(sys.executable).resolve().parent
+    RESOURCE_DIR = Path(getattr(sys, "_MEIPASS", BASE_DIR))
+else:
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    RESOURCE_DIR = BASE_DIR
+
+APP_ICON_PATH = RESOURCE_DIR / "assets" / "app.ico"
 
 # ---- 默认配置 ----
 DEFAULT_MAX_CHARS = 5000
