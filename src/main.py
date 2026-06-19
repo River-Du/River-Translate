@@ -121,10 +121,11 @@ def apply_window_icon(window):
 class TranslatorApp:
     def __init__(self):
         self.root = tk.Tk()
-        apply_window_icon(self.root)
+        self.root.withdraw()
         self.root.title("River翻译  V1.3")
         self.root.minsize(MAIN_WINDOW_MIN_WIDTH, MAIN_WINDOW_MIN_HEIGHT)
         self.root.geometry(f"{MAIN_WINDOW_WIDTH}x{MAIN_WINDOW_HEIGHT}")
+        apply_window_icon(self.root)
 
         # 配置 & 历史
         self.config_mgr = ConfigManager()
@@ -150,6 +151,7 @@ class TranslatorApp:
         self._setup_style()
         self._setup_ui()
         self._bind_keys()
+        self.root.deiconify()
 
         # 加载完毕后应用置顶 + 聚焦输入框
         self.root.after(80, self._apply_topmost_on_start)
@@ -838,6 +840,7 @@ class TranslatorApp:
             return
 
         win = tk.Toplevel(self.root)
+        win.withdraw()
         apply_window_icon(win)
         self.help_window = win
         win.title("帮助")
@@ -874,6 +877,7 @@ class TranslatorApp:
         ttk.Button(button_row, text="关闭", command=self._close_help).pack(side=tk.RIGHT)
         win.protocol("WM_DELETE_WINDOW", self._close_help)
         self._center_child_window(win, 560, 520)
+        win.deiconify()
 
     def _close_help(self):
         if self.help_window is None:
@@ -1026,6 +1030,7 @@ class SettingsDialog:
         self._test_id = 0
 
         self.dialog = tk.Toplevel(parent)
+        self.dialog.withdraw()
         apply_window_icon(self.dialog)
         self.dialog.title("设置")
         self.dialog.resizable(True, True)
@@ -1033,11 +1038,12 @@ class SettingsDialog:
         self.dialog.transient(parent)
         if topmost:
             self.dialog.attributes("-topmost", True)
-        self.dialog.grab_set()
         self.dialog.protocol("WM_DELETE_WINDOW", self._close)
 
         self._build_ui()
         self._center_on_parent(parent)
+        self.dialog.deiconify()
+        self.dialog.grab_set()
 
     def _close(self):
         if self._closed:
@@ -1369,6 +1375,7 @@ class HistoryDialog:
         self.callback = callback
 
         self.dialog = tk.Toplevel(parent)
+        self.dialog.withdraw()
         apply_window_icon(self.dialog)
         self.dialog.title("翻译历史")
         self.dialog.resizable(True, True)
@@ -1376,10 +1383,11 @@ class HistoryDialog:
         self.dialog.transient(parent)
         if topmost:
             self.dialog.attributes("-topmost", True)
-        self.dialog.grab_set()
 
         self._build_ui()
         self._center_on_parent(parent)
+        self.dialog.deiconify()
+        self.dialog.grab_set()
 
     def _center_on_parent(self, parent):
         self.dialog.update_idletasks()
