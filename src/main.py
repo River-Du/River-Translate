@@ -396,7 +396,11 @@ class TranslatorApp:
             self._skip_next_auto_translate = False
             return
         if self.auto_translate_var.get() and text.strip():
-            self._auto_translate_job = self.root.after(1000, self._do_translate)
+            self._auto_translate_job = self.root.after(1000, self._run_auto_translate)
+
+    def _run_auto_translate(self):
+        self._auto_translate_job = None
+        self._do_translate()
 
     def _update_char_count(self, text=None):
         if text is None:

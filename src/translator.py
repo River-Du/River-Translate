@@ -22,6 +22,11 @@ LANG_DEEPL = {
     "fr": "FR", "de": "DE", "ru": "RU", "es": "ES",
 }
 
+LANG_DEEPL_TARGET = {
+    "zh": "ZH", "en": "EN-US", "ja": "JA", "ko": "KO",
+    "fr": "FR", "de": "DE", "ru": "RU", "es": "ES",
+}
+
 LANG_BAIDU = {
     "auto": "auto", "zh": "zh", "en": "en", "ja": "jp", "ko": "kor",
     "fr": "fra", "de": "de", "ru": "ru", "es": "spa",
@@ -120,25 +125,35 @@ class BaseTranslator(ABC):
             raise TranslationError(str(e))
 
     def _handle_http_error(self, code, body):
+        msg = self._extract_error_message(body)
         if code in (401, 403):
-            raise AuthError("API 密钥无效或权限不足")
-        if code == 429:
-            raise QuotaError("请求过于频繁或配额不足，请稍后再试")
-        if code == 456:
-            raise QuotaError("翻译配额已用尽")
+            raise AuthError(msg or "API 密钥无效或权限不足")
+        if code in (429, 456, 529):
+            raise QuotaError(msg or "请求过于频繁或配额不足，请稍后再试")
+        if code == 408:
+            raise NetworkError(msg or "请求超时")
+        if 500 <= code < 600:
+            raise NetworkError(msg or "翻译服务暂时不可用，请稍后再试")
+        raise TranslationError(f"HTTP {code}: {msg or '无错误详情'}")
+
+    def _extract_error_message(self, body):
+        if not body:
+            return ""
         try:
             err = json.loads(body)
-            error = err.get("error")
-            if isinstance(error, dict):
-                msg = error.get("message", body)
-            elif isinstance(error, str):
-                msg = error
-            else:
-                msg = err.get("message", body)
-        except Exception:
-            msg = body[:200] if body else "无错误详情"
-        raise TranslationError(f"HTTP {code}: {msg}")
+        except json.JSONDecodeError:
+            return body[:200].strip()
+        if not isinstance(err, dict):
+            return body[:200].strip()
 
+        error = err.get("error")
+        if isinstance(error, dict):
+            msg = error.get("message") or error.get("error_msg")
+        elif isinstance(error, str):
+            msg = error
+        else:
+            msg = err.get("message") or err.get("error_msg")
+        return str(msg).strip() if msg is not None else ""
 
 # ============================================================
 #  DeepL 翻译器（免费/付费接口各自独立 API Key）
@@ -160,7 +175,7 @@ class DeepLTranslator(BaseTranslator):
         host = "api-free.deepl.com" if self.current_api == "free" else "api.deepl.com"
         url = f"https://{host}/v2/translate"
 
-        params = {"text": text, "target_lang": LANG_DEEPL.get(target_lang, target_lang.upper())}
+        params = {"text": text, "target_lang": LANG_DEEPL_TARGET.get(target_lang, target_lang.upper())}
         src = LANG_DEEPL.get(source_lang)
         if src:
             params["source_lang"] = src
@@ -301,7 +316,10 @@ class OpenAITranslator(BaseTranslator):
             raise ParseError("响应格式异常，请检查 Base URL 和 Model 是否正确")
         if not isinstance(content, str):
             raise ParseError("响应格式异常，请检查 Base URL 和 Model 是否正确")
-        return html.unescape(content.strip())
+        translated = content.strip()
+        if not translated:
+            raise ParseError("未获得翻译结果")
+        return html.unescape(translated)
 
     def _chat_completions_url(self):
         if self.base_url.endswith("/chat/completions"):
