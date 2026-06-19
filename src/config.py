@@ -297,8 +297,7 @@ class HistoryManager:
         dedupe_key = self._dedupe_key(normalized)
         history = [item for item in history if self._dedupe_key(item) != dedupe_key]
         history.insert(0, normalized)
-        if len(history) > self.max_items:
-            history = history[: self.max_items]
+        history = history[: self.max_items]
         self._save(history)
 
     def clear(self):

@@ -34,7 +34,6 @@ from config import (
 from translator import (
     ENGINE_NAMES,
     DEFAULT_ENGINE_NAMES,
-    TranslationError,
     AuthError,
     create_translator,
 )
@@ -191,7 +190,7 @@ class TranslatorApp:
                         variable=self.clipboard_translate_var,
                         command=self._on_clipboard_translate_toggle).pack(anchor=tk.W)
 
-        self.auto_translate_var = tk.BooleanVar(value=self.config.get("auto_translate", False))
+        self.auto_translate_var = tk.BooleanVar(value=self.config.get("auto_translate", True))
         ttk.Checkbutton(opt_left, text="自动翻译",
                         variable=self.auto_translate_var,
                         command=self._on_auto_translate_toggle).pack(anchor=tk.W)
@@ -201,7 +200,7 @@ class TranslatorApp:
                         variable=self.auto_copy_var,
                         command=self._save_config).pack(anchor=tk.NW)
 
-        self.topmost_var = tk.BooleanVar(value=self.config.get("always_on_top", False))
+        self.topmost_var = tk.BooleanVar(value=self.config.get("always_on_top", True))
         self.topmost_cb = ttk.Checkbutton(opt_right, text="窗口置顶", variable=self.topmost_var,
                                           command=self._toggle_topmost)
         self.topmost_cb.pack(anchor=tk.NW)
@@ -229,7 +228,7 @@ class TranslatorApp:
                 self.config.get("target_lang", DEFAULT_CONFIG["target_lang"])
             )
         )
-        tgt_choices = [TARGET_LANGUAGE_DISPLAY[c] for c in TARGET_LANGUAGE_DISPLAY]
+        tgt_choices = list(TARGET_LANGUAGE_DISPLAY.values())
         self.tgt_combo = ttk.Combobox(lang_frame, textvariable=self.tgt_var,
                                       values=tgt_choices, state="readonly",
                                       width=7, font=FONT)
@@ -606,8 +605,6 @@ class TranslatorApp:
             )
         except AuthError as e:
             self._schedule_on_main(self._on_auth_error, str(e), text, request_id)
-        except TranslationError as e:
-            self._schedule_on_main(self._on_translate_fail, str(e), text, request_id)
         except Exception as e:
             self._schedule_on_main(self._on_translate_fail, str(e), text, request_id)
 
@@ -874,8 +871,8 @@ class TranslatorApp:
                 self.config.get("target_lang", DEFAULT_CONFIG["target_lang"])
             )
         )
-        self.topmost_var.set(self.config.get("always_on_top", False))
-        self.auto_translate_var.set(self.config.get("auto_translate", False))
+        self.topmost_var.set(self.config.get("always_on_top", True))
+        self.auto_translate_var.set(self.config.get("auto_translate", True))
         self.auto_copy_var.set(self.config.get("auto_copy", False))
         self.clipboard_translate_var.set(self.config.get("clipboard_translate", False))
         self.root.attributes("-topmost", self.topmost_var.get())
@@ -950,8 +947,6 @@ class TranslatorApp:
 
         self._replace_output(entry.get("target_text", ""))
 
-        # 回填历史时取消自动翻译，避免覆盖历史记录
-        self._cancel_auto_translate()
         self._on_input_change()
         self._save_config()
 
