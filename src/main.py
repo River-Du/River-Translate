@@ -733,6 +733,7 @@ class TranslatorApp:
     def _set_translating(self, translating):
         self._translating = translating
         combo_state = tk.DISABLED if translating else "readonly"
+        self.settings_btn.configure(state=tk.DISABLED if translating else tk.NORMAL)
         if translating:
             self.translate_btn.configure(
                 text="终止翻译", state=tk.NORMAL, bg="#D83B01", activebackground="#A4262C"
@@ -822,6 +823,8 @@ class TranslatorApp:
     # ========== 设置弹窗 ==========
 
     def _open_settings(self):
+        if self._translating:
+            return
         current_engine = self._get_engine_code()
         SettingsDialog(
             self.root,
