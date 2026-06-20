@@ -11,6 +11,9 @@ user_data/
 .idea/
 *.swp
 *.swo
+.mimocode/
+run_opencode.bat
+run_mimo.bat
 
 # 虚拟环境
 .venv/
@@ -26,7 +29,3 @@ build/
 Thumbs.db
 desktop.ini
 
-# AI Agent
-.mimocode/
-run_opencode.bat
-run_mimo.bat

@@ -4,7 +4,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
 set "APP_NAME=River Translate"
-set "DEFAULT_MODE=onedir"
+set "DEFAULT_MODE=onefile"
 set "PROJECT_DIR=%CD%"
 set "ICON_PATH=%PROJECT_DIR%\assets\app.ico"
 set "ENTRY_PATH=%PROJECT_DIR%\src\main.py"

@@ -169,7 +169,7 @@ https://example.com/v1/chat/completions
 build.bat
 ```
 
-默认打包模式是 `onedir`。也可以显式指定模式：
+默认打包模式是 `onefile`。也可以显式指定模式：
 
 ```bat
 build.bat onedir
@@ -184,19 +184,19 @@ build.bat onefile
 - 删除旧的 `build\` 和 `dist\`。
 - 生成新的打包结果。
 
-默认 `onedir` 输出结构：
-
-```text
-dist\River Translate\
-├── River Translate.exe
-└── _internal\
-```
-
 `onefile` 输出结构：
 
 ```text
 dist\River Translate\
 └── River Translate.exe
+```
+
+ `onedir` 输出结构：
+
+```text
+dist\River Translate\
+├── River Translate.exe
+└── _internal\
 ```
 
 打包后的程序首次启动后会在 EXE 同级目录创建：
@@ -227,8 +227,6 @@ River Translate\
 ├── README.md
 └── LICENSE
 ```
-
-`build\`、`dist\`、`.venv\`、`user_data\` 属于本地生成内容，不应提交到仓库。
 
 ## 常见问题
 
