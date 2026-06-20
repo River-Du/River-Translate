@@ -8,6 +8,8 @@ python src/main.py
 
 Python 3.8+ required. No install step — run directly from repo root. `run.bat` uses `pythonw` (no console window).
 
+No tests, linter, type checker, or CI exist in this repo. Changes are verified by running the app manually.
+
 ## Architecture
 
 Three source files in `src/`, zero external dependencies (Python stdlib only):
@@ -60,4 +62,4 @@ user_data/         — config.json and history.json (auto-generated at runtime, 
 - Request config, including current engine config and `request_timeout_seconds`, is deep-copied before passing to worker threads to avoid races with the settings dialog.
 - `ConfigManager.load()` normalizes `current_engine`, `source_lang`, and `target_lang` to valid values; history restore still uses local UI fallbacks for old records.
 - `_unique_engine_name` deduplicates AI display names against built-in engine names, appending a numeric suffix if needed.
-- `ENGINE_NAMES` is mutable at runtime — AI1/AI2 display names come from config's `name` field and are synced via `_sync_ai_names()`. The engine combo reads `ENGINE_NAMES.values()`.
+- `build.bat` deletes the entire `dist/` before each build — any `user_data/` inside it (from a previous packaged run) is lost.
