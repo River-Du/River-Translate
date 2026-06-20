@@ -234,7 +234,6 @@ class TranslatorApp:
 
         self.swap_btn = ttk.Button(lang_frame, text="⇄", width=3, command=self._do_swap)
         self.swap_btn.pack(side=tk.LEFT, padx=4)
-        self._refresh_swap_button_state()
 
         ttk.Label(lang_frame, text="目标语言:", font=FONT).pack(side=tk.LEFT, padx=(8, 0))
         self.tgt_var = tk.StringVar(
@@ -248,6 +247,7 @@ class TranslatorApp:
                                       width=7, font=FONT)
         self.tgt_combo.pack(side=tk.LEFT, padx=(4, 4))
         self.tgt_combo.bind("<<ComboboxSelected>>", self._on_lang_select)
+        self._refresh_swap_button_state()
 
         # ---- 行2: 引擎 + 窗口置顶 ----
         engine_frame = ttk.Frame(main)
