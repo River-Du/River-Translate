@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/app.png" alt="River Translate" width="68%">
+  <img src="docs/images/app.png" alt="River Translate" width="20%">
 </p>
 
 ## 简介
